@@ -322,19 +322,19 @@ public class MainMapper {
 			e.printStackTrace();
 		}// primeira linha do arquivo
 
-		ArrayList<String> api = null;
+		ArrayList<String> full_expert = null;
 
 		while (s != null)
 		{
 			System.out.println("\nLine: " + s);
 			splitLine(s);
-			api = findAPI(pr, java, project);
+			full_expert = findAPI(pr, java, project);
 
-			if (api==null)
+			if (full_expert==null)
 				System.out.println("not found in " + project + ": " + pr + " - " + java);
 			else 
 			{
-				insertApriori(api);
+				insertApriori(full_expert);
 				insertPr();
 			}
 
@@ -443,7 +443,7 @@ public class MainMapper {
 				OutputStreamWriter osw = new OutputStreamWriter(os);
 				BufferedWriter bw = new BufferedWriter(osw);
 				
-				FileOutputStream osc = new FileOutputStream("4_"+classes);
+				FileOutputStream osc = new FileOutputStream(outDir+"4_"+classes);
 				OutputStreamWriter oswc = new OutputStreamWriter(osc);
 				BufferedWriter bwc = new BufferedWriter(oswc);
 		    	//bw.write("header \n");
@@ -1150,17 +1150,27 @@ public class MainMapper {
 	}
 
 
-	private void insertApriori(ArrayList<String> api) 
+	private void insertApriori(ArrayList<String> full_expert) 
 	{
 		FileDAO fd = FileDAO.getInstancia(db,user,pswd);
+		
+		String expert = null;
+		String sub_expert = null;
+		String full_ex = null;
 
-		for(int i = 0; i<api.size(); i++) 
+		for(int i = 0; i<full_expert.size(); i++) 
 		{
-			boolean result = fd.insertApriori(pr, java, api.get(i), project, author);
+			full_ex = full_expert.get(i);
+			expert = full_ex.substring(0, full_ex.indexOf(';'));
+			sub_expert = full_ex.substring(full_ex.indexOf(';') + 1);
+					
+			//System.out.println("full_expert: \"" + full_ex + "\", expert: " + expert + ", sub_expert: " + sub_expert);
+					
+			boolean result = fd.insertApriori(pr, java, expert, sub_expert, project, author);
 			
 			if (!result) 
 			{
-				System.out.println("Insert apriori failed: "+project +" - "+ pr + " - "+ java + " - "+ api.get(i) + " - " + author);
+				System.out.println("Insert apriori failed: "+project +" - "+ pr + " - "+ java + " - " + expert + " - " + sub_expert + " - " + author);
 			}
 		}
 		
@@ -1194,6 +1204,8 @@ public class MainMapper {
 	private boolean splitLine(String s) {
 
 		boolean isOk = false;
+		int sepLen = separator.length();
+
 		int comma = s.indexOf(separator);
 		
 		if (comma == -1) 
@@ -1203,7 +1215,7 @@ public class MainMapper {
 		}
 		
 		pr = s.substring(0, comma);
-		int comma1 = s.indexOf(separator, comma+1);
+		int comma1 = s.indexOf(separator, comma+sepLen);
 		
 		if (comma1 == -1) 
 		{
@@ -1211,7 +1223,7 @@ public class MainMapper {
 			return isOk;
 		}
 		
-		java = s.substring(comma+1, comma1);
+		java = s.substring(comma+sepLen, comma1);
 		// get only the file name (because in the OSSParser that is filling the database without the last "/" before file name!!!)
 		int slash = java.lastIndexOf("/");
 		
@@ -1222,7 +1234,7 @@ public class MainMapper {
 		}
 		
 		java = java.substring(slash+1, java.length());
-		int comma2 = s.indexOf(separator, comma1+1);
+		int comma2 = s.indexOf(separator, comma1+sepLen);
 		
 		if (comma2 == -1) 
 		{
@@ -1230,12 +1242,12 @@ public class MainMapper {
 			return isOk;
 		}
 		
-		title = s.substring(comma1+1, comma2);
+		title = s.substring(comma1+sepLen, comma2);
 		
 		// get only the file name (because in the OSSParser that is filling the database without the last "/" before file name!!!)
 		//int slash = s.lastIndexOf("/");
 		//java = s.substring(slash+1, s.length());
-		int comma3 = s.indexOf(separator, comma2+1);
+		int comma3 = s.indexOf(separator, comma2+sepLen);
 		
 		if (comma3 == -1) 
 		{
@@ -1243,8 +1255,8 @@ public class MainMapper {
 			return isOk;
 		}
 		
-		body = s.substring(comma2+1, comma3);
-		author = s.substring(comma3+1, s.length());
+		body = s.substring(comma2+sepLen, comma3);
+		author = s.substring(comma3+sepLen, s.length());
 		
 		pr = pr.trim();
 		author = author.trim();
@@ -1259,7 +1271,7 @@ public class MainMapper {
 		title = filter_text(title, cases);
 		
 		body = filter_text(body, cases);
-		System.out.println("pr: "+pr+" , java: "+java + " title: "+ title + "author: "+ author);
+		System.out.println("pr: "+pr+", java: "+java + ", title: "+ title + ", author: "+ author);
 		
 		isOk = true;
 		
